@@ -1,411 +1,118 @@
---[[
-  ____  _   _   _                    _       _                 
- |  _ \| | / \ | |_ __ ___   __ _| | __ _| | ____ _ ___    
- | |_) | |/ _ \| | '_ ` _ \ / _` | |/ _` | |/ / _` / __|   
- |  _ <| / ___ \ | | | | | | (_| | | (_| |   < (_| \__ \   
- |_| \_\_/_/   \_\_|_| |_| |_|\__,_|_|\__,_|_|\_\__,_|___/   
- 
-  JAJAmalakas HUB — Client Framework
---]]
-
-if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
-
+-- Services
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local TweenService = game:GetService("TweenService")
 
--- Key Configuration
-local CORRECT_KEY = "JA69"
-local KeyVerified = false
+-- Variables
+local player = Players.LocalPlayer
+local character = player.Character
+local eggs = {}
+local config = {
+    password = "JA69",
+    rarityPriority = {"Legendary", "Rare", "Uncommon", "Common"},
+    eggsPriority = {},
+    speed = 10,
+    antiHit = true
+}
 
--- Clean up existing instance
-local oldUI = PlayerGui:FindFirstChild("JAJAmalakasHub")
-if oldUI then oldUI:Destroy() end
+-- GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player.PlayerGui
+local frame = Instance.new("Frame")
+frame.Parent = screenGui
+frame.Size = UDim2.new(0.5, 0, 0.5, 0)
+frame.Position = UDim2.new(0.25, 0, 0.25, 0)
+local title = Instance.new("TextLabel")
+title.Parent = frame
+title.Size = UDim2.new(1, 0, 0.1, 0)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.Text = "JAJAmalakas"
+local eggsList = Instance.new("ListLayout")
+eggsList.Parent = frame
+eggsList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+eggsList.VerticalAlignment = Enum.VerticalAlignment.Top
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "JAJAmalakasHub"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.Parent = PlayerGui
-
--- ==========================================
--- KEY SYSTEM WINDOW
--- ==========================================
-local KeyFrame = Instance.new("Frame")
-KeyFrame.Name = "KeySystem"
-KeyFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-KeyFrame.Position = UDim2.fromScale(0.5, 0.5)
-KeyFrame.Size = UDim2.fromOffset(300, 180)
-KeyFrame.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
-KeyFrame.BorderSizePixel = 0
-KeyFrame.Parent = ScreenGui
-
-Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0, 10)
-
-local KeyStroke = Instance.new("UIStroke")
-KeyStroke.Color = Color3.fromRGB(0, 210, 255)
-KeyStroke.Thickness = 1.5
-KeyStroke.Parent = KeyFrame
-
-local KeyTitle = Instance.new("TextLabel")
-KeyTitle.Position = UDim2.fromOffset(0, 15)
-KeyTitle.Size = UDim2.new(1, 0, 0, 25)
-KeyTitle.BackgroundTransparency = 1
-KeyTitle.Text = "JAJAmalakas — Key System"
-KeyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-KeyTitle.Font = Enum.Font.GothamBold
-KeyTitle.TextSize = 14
-KeyTitle.Parent = KeyFrame
-
-local KeyInput = Instance.new("TextBox")
-KeyInput.Position = UDim2.fromOffset(20, 55)
-KeyInput.Size = UDim2.new(1, -40, 0, 38)
-KeyInput.BackgroundColor3 = Color3.fromRGB(22, 28, 42)
-KeyInput.BorderSizePixel = 0
-KeyInput.PlaceholderText = "Enter Key Here..."
-KeyInput.PlaceholderColor3 = Color3.fromRGB(120, 130, 150)
-KeyInput.Text = ""
-KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-KeyInput.Font = Enum.Font.GothamMedium
-KeyInput.TextSize = 12
-KeyInput.ClearTextOnFocus = false
-KeyInput.Parent = KeyFrame
-
-Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 8)
-
-local SubmitBtn = Instance.new("TextButton")
-SubmitBtn.Position = UDim2.fromOffset(20, 105)
-SubmitBtn.Size = UDim2.new(1, -40, 0, 38)
-SubmitBtn.BackgroundColor3 = Color3.fromRGB(0, 210, 255)
-SubmitBtn.BorderSizePixel = 0
-SubmitBtn.Text = "VERIFY KEY"
-SubmitBtn.TextColor3 = Color3.fromRGB(10, 15, 25)
-SubmitBtn.Font = Enum.Font.GothamBold
-SubmitBtn.TextSize = 12
-SubmitBtn.Parent = KeyFrame
-
-Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 8)
-
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Position = UDim2.fromOffset(0, 148)
-StatusLabel.Size = UDim2.new(1, 0, 0, 20)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = ""
-StatusLabel.Font = Enum.Font.GothamMedium
-StatusLabel.TextSize = 10
-StatusLabel.Parent = KeyFrame
-
--- ==========================================
--- MAIN HUB WINDOW
--- ==========================================
-local Main = Instance.new("Frame")
-Main.Name = "MainWindow"
-Main.AnchorPoint = Vector2.new(0.5, 0.5)
-Main.Position = UDim2.fromScale(0.5, 0.5)
-Main.Size = UDim2.fromOffset(380, 280)
-Main.BackgroundColor3 = Color3.fromRGB(12, 16, 24)
-Main.BorderSizePixel = 0
-Main.Visible = false
-Main.Parent = ScreenGui
-
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
-
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = Color3.fromRGB(0, 210, 255)
-MainStroke.Thickness = 1.2
-MainStroke.Parent = Main
-
-local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 48)
-Header.BackgroundColor3 = Color3.fromRGB(16, 22, 34)
-Header.BorderSizePixel = 0
-Header.Parent = Main
-
-Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 12)
-
-local HeaderTitle = Instance.new("TextLabel")
-HeaderTitle.Position = UDim2.fromOffset(16, 12)
-HeaderTitle.Size = UDim2.new(1, -60, 0, 24)
-HeaderTitle.BackgroundTransparency = 1
-HeaderTitle.Text = "JAJAmalakas HUB"
-HeaderTitle.TextColor3 = Color3.fromRGB(0, 210, 255)
-HeaderTitle.Font = Enum.Font.GothamBold
-HeaderTitle.TextSize = 16
-HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
-HeaderTitle.Parent = Header
-
-local HideButton = Instance.new("TextButton")
-HideButton.AnchorPoint = Vector2.new(1, 0.5)
-HideButton.Position = UDim2.new(1, -12, 0.5, 0)
-HideButton.Size = UDim2.fromOffset(30, 30)
-HideButton.BackgroundColor3 = Color3.fromRGB(22, 30, 48)
-HideButton.Text = "—"
-HideButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-HideButton.Font = Enum.Font.GothamBold
-HideButton.TextSize = 14
-HideButton.Parent = Header
-
-Instance.new("UICorner", HideButton).CornerRadius = UDim.new(0, 8)
-
--- Draggable Logic
-local dragging, dragStart, startPos
-Header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = Main.Position
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
-end)
-
--- Scrollable Content Area
-local Content = Instance.new("ScrollingFrame")
-Content.Position = UDim2.fromOffset(12, 58)
-Content.Size = UDim2.new(1, -24, 1, -70)
-Content.BackgroundTransparency = 1
-Content.BorderSizePixel = 0
-Content.ScrollBarThickness = 4
-Content.ScrollBarImageColor3 = Color3.fromRGB(0, 210, 255)
-Content.Parent = Main
-
-local ListLayout = Instance.new("UIListLayout")
-ListLayout.Padding = UDim.new(0, 10)
-ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-ListLayout.Parent = Content
-
--- Reopen Button (3 Lines Icon)
-local ReopenBtn = Instance.new("TextButton")
-ReopenBtn.AnchorPoint = Vector2.new(1, 1)
-ReopenBtn.Position = UDim2.new(1, -16, 1, -16)
-ReopenBtn.Size = UDim2.fromOffset(48, 48)
-ReopenBtn.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
-ReopenBtn.Text = ""
-ReopenBtn.Visible = false
-ReopenBtn.Parent = ScreenGui
-
-Instance.new("UICorner", ReopenBtn).CornerRadius = UDim.new(0, 10)
-
-local ReopenStroke = Instance.new("UIStroke")
-ReopenStroke.Color = Color3.fromRGB(0, 210, 255)
-ReopenStroke.Thickness = 1.5
-ReopenStroke.Parent = ReopenBtn
-
-for i = 0, 2 do
-    local line = Instance.new("Frame")
-    line.Size = UDim2.fromOffset(22, 3)
-    line.Position = UDim2.new(0.5, -11, 0.3 + (i * 0.2), -1)
-    line.BackgroundColor3 = Color3.fromRGB(0, 210, 255)
-    line.BorderSizePixel = 0
-    line.Parent = ReopenBtn
-    Instance.new("UICorner", line).CornerRadius = UDim.new(1, 0)
-end
-
--- ==========================================
--- WALKSPEED CONTROLS
--- ==========================================
-local WalkSpeedEnabled = false
-local DefaultSpeed = 16
-local TargetSpeed = 16
-
--- Toggle WalkSpeed UI Component
-local ToggleFrame = Instance.new("TextButton")
-ToggleFrame.Size = UDim2.new(1, 0, 0, 42)
-ToggleFrame.BackgroundColor3 = Color3.fromRGB(22, 28, 42)
-ToggleFrame.BorderSizePixel = 0
-ToggleFrame.AutoButtonColor = false
-ToggleFrame.Text = ""
-ToggleFrame.Parent = Content
-
-Instance.new("UICorner", ToggleFrame).CornerRadius = UDim.new(0, 8)
-
-local CheckBox = Instance.new("Frame")
-CheckBox.Position = UDim2.fromOffset(12, 12)
-CheckBox.Size = UDim2.fromOffset(18, 18)
-CheckBox.BackgroundColor3 = Color3.fromRGB(38, 48, 65)
-CheckBox.BorderSizePixel = 0
-CheckBox.Parent = ToggleFrame
-
-Instance.new("UICorner", CheckBox).CornerRadius = UDim.new(0, 5)
-
-local CheckMark = Instance.new("TextLabel")
-CheckMark.Size = UDim2.fromScale(1, 1)
-CheckMark.BackgroundTransparency = 1
-CheckMark.Text = ""
-CheckMark.TextColor3 = Color3.new(1, 1, 1)
-CheckMark.Font = Enum.Font.GothamBold
-CheckMark.TextSize = 12
-CheckMark.Parent = CheckBox
-
-local ToggleLabel = Instance.new("TextLabel")
-ToggleLabel.Position = UDim2.fromOffset(40, 0)
-ToggleLabel.Size = UDim2.new(1, -48, 1, 0)
-ToggleLabel.BackgroundTransparency = 1
-ToggleLabel.Text = "Enable Custom WalkSpeed"
-ToggleLabel.TextColor3 = Color3.fromRGB(220, 225, 235)
-ToggleLabel.Font = Enum.Font.GothamMedium
-ToggleLabel.TextSize = 12
-ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
-ToggleLabel.Parent = ToggleFrame
-
--- Slider WalkSpeed UI Component
-local SliderFrame = Instance.new("Frame")
-SliderFrame.Size = UDim2.new(1, 0, 0, 54)
-SliderFrame.BackgroundTransparency = 1
-SliderFrame.Parent = Content
-
-local SliderLabel = Instance.new("TextLabel")
-SliderLabel.Position = UDim2.fromOffset(2, 0)
-SliderLabel.Size = UDim2.new(0.6, 0, 0, 20)
-SliderLabel.BackgroundTransparency = 1
-SliderLabel.Text = "WalkSpeed Value"
-SliderLabel.TextColor3 = Color3.fromRGB(200, 205, 220)
-SliderLabel.Font = Enum.Font.GothamMedium
-SliderLabel.TextSize = 11
-SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
-SliderLabel.Parent = SliderFrame
-
-local ValueLabel = Instance.new("TextLabel")
-ValueLabel.AnchorPoint = Vector2.new(1, 0)
-ValueLabel.Position = UDim2.new(1, -2, 0, 0)
-ValueLabel.Size = UDim2.fromOffset(60, 20)
-ValueLabel.BackgroundTransparency = 1
-ValueLabel.Text = "16"
-ValueLabel.TextColor3 = Color3.fromRGB(0, 210, 255)
-ValueLabel.Font = Enum.Font.GothamBold
-ValueLabel.TextSize = 11
-ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
-ValueLabel.Parent = SliderFrame
-
-local SliderBar = Instance.new("Frame")
-SliderBar.Position = UDim2.fromOffset(2, 28)
-SliderBar.Size = UDim2.new(1, -4, 0, 6)
-SliderBar.BackgroundColor3 = Color3.fromRGB(30, 42, 60)
-SliderBar.BorderSizePixel = 0
-SliderBar.Active = true
-SliderBar.Parent = SliderFrame
-
-Instance.new("UICorner", SliderBar).CornerRadius = UDim.new(1, 0)
-
-local SliderFill = Instance.new("Frame")
-SliderFill.Size = UDim2.new(0, 0, 1, 0)
-SliderFill.BackgroundColor3 = Color3.fromRGB(0, 210, 255)
-SliderFill.BorderSizePixel = 0
-SliderFill.Parent = SliderBar
-
-Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(1, 0)
-
-local SliderKnob = Instance.new("Frame")
-SliderKnob.AnchorPoint = Vector2.new(0.5, 0.5)
-SliderKnob.Position = UDim2.new(0, 0, 0.5, 0)
-SliderKnob.Size = UDim2.fromOffset(14, 14)
-SliderKnob.BackgroundColor3 = Color3.fromRGB(180, 240, 255)
-SliderKnob.BorderSizePixel = 0
-SliderKnob.Parent = SliderBar
-
-Instance.new("UICorner", SliderKnob).CornerRadius = UDim.new(1, 0)
-
--- WalkSpeed Functionality
-local function updateSpeed()
-    local char = LocalPlayer.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if hum then
-        hum.WalkSpeed = WalkSpeedEnabled and TargetSpeed or DefaultSpeed
-    end
-end
-
-ToggleFrame.MouseButton1Click:Connect(function()
-    WalkSpeedEnabled = not WalkSpeedEnabled
-    CheckBox.BackgroundColor3 = WalkSpeedEnabled and Color3.fromRGB(0, 180, 255) or Color3.fromRGB(38, 48, 65)
-    CheckMark.Text = WalkSpeedEnabled and "✓" or ""
-    updateSpeed()
-end)
-
-local draggingSlider = false
-local function updateSlider(input)
-    local width = math.max(SliderBar.AbsoluteSize.X, 1)
-    local x = math.clamp(input.Position.X - SliderBar.AbsolutePosition.X, 0, width)
-    local alpha = x / width
-    TargetSpeed = math.floor(16 + (alpha * (250 - 16)))
-    SliderFill.Size = UDim2.new(alpha, 0, 1, 0)
-    SliderKnob.Position = UDim2.new(alpha, 0, 0.5, 0)
-    ValueLabel.Text = tostring(TargetSpeed)
-    if WalkSpeedEnabled then
-        updateSpeed()
-    end
-end
-
-SliderBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingSlider = true
-        updateSlider(input)
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if draggingSlider and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        updateSlider(input)
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingSlider = false
-    end
-end)
-
-RunService.Heartbeat:Connect(function()
-    if KeyVerified and WalkSpeedEnabled then
-        local char = LocalPlayer.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hum and hum.WalkSpeed ~= TargetSpeed then
-            hum.WalkSpeed = TargetSpeed
+-- Functions
+local function getEggs()
+    for _, egg in pairs(ReplicatedStorage:GetChildren()) do
+        if egg:IsA("Model") and egg.Name:lower():find("egg") then
+            table.insert(eggs, egg)
         end
     end
-end)
+end
 
--- Key Verification Action
-local function checkKey()
-    if KeyInput.Text == CORRECT_KEY then
-        KeyVerified = true
-        StatusLabel.TextColor3 = Color3.fromRGB(0, 210, 255)
-        StatusLabel.Text = "Access Granted!"
-        task.wait(0.5)
-        KeyFrame:Destroy()
-        Main.Visible = true
-    else
-        StatusLabel.TextColor3 = Color3.fromRGB(235, 65, 65)
-        StatusLabel.Text = "Invalid Key. Try again."
+local function sortEggs()
+    table.sort(eggs, function(a, b)
+        local aRarity = a:GetAttribute("Rarity")
+        local bRarity = b:GetAttribute("Rarity")
+        for i, rarity in pairs(config.rarityPriority) do
+            if aRarity == rarity and bRarity ~= rarity then
+                return true
+            elseif aRarity ~= rarity and bRarity == rarity then
+                return false
+            end
+        end
+        return a.Name < b.Name
+    end)
+    for i, egg in pairs(eggs) do
+        local eggLabel = Instance.new("TextLabel")
+        eggLabel.Parent = frame
+        eggLabel.Size = UDim2.new(1, 0, 0.05, 0)
+        eggLabel.Position = UDim2.new(0, 0, 0.1 + (i - 1) * 0.05, 0)
+        eggLabel.Text = egg.Name .. " - " .. egg:GetAttribute("Rarity")
     end
 end
 
-SubmitBtn.MouseButton1Click:Connect(checkKey)
-KeyInput.FocusLost:Connect(function(enterPressed)
-    if enterPressed then checkKey() end
-end)
+local function autoGetEggs()
+    getEggs()
+    sortEggs()
+    for _, egg in pairs(eggs) do
+        local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear)
+        local tween = TweenService:Create(character.HumanoidRootPart, tweenInfo, {CFrame = egg.HumanoidRootPart.CFrame})
+        tween:Play()
+        wait(0.1)
+        character.HumanoidRootPart.CFrame = egg.HumanoidRootPart.CFrame
+        egg:Destroy()
+    end
+end
 
-HideButton.MouseButton1Click:Connect(function()
-    Main.Visible = false
-    ReopenBtn.Visible = true
-end)
+local function antiHit()
+    character.Humanoid.Touched:Connect(function(hit)
+        if config.antiHit and hit.Parent ~= player then
+            character.Humanoid:TakeDamage(0)
+        end
+    end)
+end
 
-ReopenBtn.MouseButton1Click:Connect(function()
-    Main.Visible = true
-    ReopenBtn.Visible = false
-end)
+local function speedTween()
+    local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(character.Humanoid, tweenInfo, {WalkSpeed = config.speed})
+    tween:Play()
+end
+
+local function keySystem()
+    local input = UserInputService.InputBegan:Wait()
+    if input.KeyCode == Enum.KeyCode.J then
+        local passwordInput = Instance.new("TextBox")
+        passwordInput.Parent = frame
+        passwordInput.Size = UDim2.new(1, 0, 0.05, 0)
+        passwordInput.Position = UDim2.new(0, 0, 0.6, 0)
+        passwordInput.Focus()
+        local submitButton = Instance.new("TextButton")
+        submitButton.Parent = frame
+        submitButton.Size = UDim2.new(1, 0, 0.05, 0)
+        submitButton.Position = UDim2.new(0, 0, 0.65, 0)
+        submitButton.Text = "Submit"
+        submitButton.MouseButton1Click:Connect(function()
+            if passwordInput.Text == config.password then
+                autoGetEggs()
+                speedTween()
+                antiHit()
+            end
+        end)
+    end
+end
+
+-- Events
+keySystem()
