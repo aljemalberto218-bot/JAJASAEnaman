@@ -5,7 +5,7 @@
  |  _ <| / ___ \ | | | | | | (_| | | (_| |   < (_| \__ \   
  |_| \_\_/_/   \_\_|_| |_| |_|\__,_|_|\__,_|_|\_\__,_|___/   
  
-  JAJAmalakas — UI Framework
+  JAJAmalakas HUB — Client Framework
 --]]
 
 if not game:IsLoaded() then
@@ -13,11 +13,13 @@ if not game:IsLoaded() then
 end
 
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Configuration
+-- Key Configuration
 local CORRECT_KEY = "JA69"
 local KeyVerified = false
 
@@ -71,6 +73,7 @@ KeyInput.Text = ""
 KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
 KeyInput.Font = Enum.Font.GothamMedium
 KeyInput.TextSize = 12
+KeyInput.ClearTextOnFocus = false
 KeyInput.Parent = KeyFrame
 
 Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 8)
@@ -104,7 +107,7 @@ local Main = Instance.new("Frame")
 Main.Name = "MainWindow"
 Main.AnchorPoint = Vector2.new(0.5, 0.5)
 Main.Position = UDim2.fromScale(0.5, 0.5)
-Main.Size = UDim2.fromOffset(380, 260)
+Main.Size = UDim2.fromOffset(380, 280)
 Main.BackgroundColor3 = Color3.fromRGB(12, 16, 24)
 Main.BorderSizePixel = 0
 Main.Visible = false
@@ -149,7 +152,7 @@ HideButton.Parent = Header
 
 Instance.new("UICorner", HideButton).CornerRadius = UDim.new(0, 8)
 
--- Draggable Logic for Header
+-- Draggable Logic
 local dragging, dragStart, startPos
 Header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -172,7 +175,22 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- Reopen Button (3 Horizontal Lines)
+-- Scrollable Content Area
+local Content = Instance.new("ScrollingFrame")
+Content.Position = UDim2.fromOffset(12, 58)
+Content.Size = UDim2.new(1, -24, 1, -70)
+Content.BackgroundTransparency = 1
+Content.BorderSizePixel = 0
+Content.ScrollBarThickness = 4
+Content.ScrollBarImageColor3 = Color3.fromRGB(0, 210, 255)
+Content.Parent = Main
+
+local ListLayout = Instance.new("UIListLayout")
+ListLayout.Padding = UDim.new(0, 10)
+ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ListLayout.Parent = Content
+
+-- Reopen Button (3 Lines Icon)
 local ReopenBtn = Instance.new("TextButton")
 ReopenBtn.AnchorPoint = Vector2.new(1, 1)
 ReopenBtn.Position = UDim2.new(1, -16, 1, -16)
@@ -199,7 +217,170 @@ for i = 0, 2 do
     Instance.new("UICorner", line).CornerRadius = UDim.new(1, 0)
 end
 
--- Key Verification Logic
+-- ==========================================
+-- WALKSPEED CONTROLS
+-- ==========================================
+local WalkSpeedEnabled = false
+local DefaultSpeed = 16
+local TargetSpeed = 16
+
+-- Toggle WalkSpeed UI Component
+local ToggleFrame = Instance.new("TextButton")
+ToggleFrame.Size = UDim2.new(1, 0, 0, 42)
+ToggleFrame.BackgroundColor3 = Color3.fromRGB(22, 28, 42)
+ToggleFrame.BorderSizePixel = 0
+ToggleFrame.AutoButtonColor = false
+ToggleFrame.Text = ""
+ToggleFrame.Parent = Content
+
+Instance.new("UICorner", ToggleFrame).CornerRadius = UDim.new(0, 8)
+
+local CheckBox = Instance.new("Frame")
+CheckBox.Position = UDim2.fromOffset(12, 12)
+CheckBox.Size = UDim2.fromOffset(18, 18)
+CheckBox.BackgroundColor3 = Color3.fromRGB(38, 48, 65)
+CheckBox.BorderSizePixel = 0
+CheckBox.Parent = ToggleFrame
+
+Instance.new("UICorner", CheckBox).CornerRadius = UDim.new(0, 5)
+
+local CheckMark = Instance.new("TextLabel")
+CheckMark.Size = UDim2.fromScale(1, 1)
+CheckMark.BackgroundTransparency = 1
+CheckMark.Text = ""
+CheckMark.TextColor3 = Color3.new(1, 1, 1)
+CheckMark.Font = Enum.Font.GothamBold
+CheckMark.TextSize = 12
+CheckMark.Parent = CheckBox
+
+local ToggleLabel = Instance.new("TextLabel")
+ToggleLabel.Position = UDim2.fromOffset(40, 0)
+ToggleLabel.Size = UDim2.new(1, -48, 1, 0)
+ToggleLabel.BackgroundTransparency = 1
+ToggleLabel.Text = "Enable Custom WalkSpeed"
+ToggleLabel.TextColor3 = Color3.fromRGB(220, 225, 235)
+ToggleLabel.Font = Enum.Font.GothamMedium
+ToggleLabel.TextSize = 12
+ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+ToggleLabel.Parent = ToggleFrame
+
+-- Slider WalkSpeed UI Component
+local SliderFrame = Instance.new("Frame")
+SliderFrame.Size = UDim2.new(1, 0, 0, 54)
+SliderFrame.BackgroundTransparency = 1
+SliderFrame.Parent = Content
+
+local SliderLabel = Instance.new("TextLabel")
+SliderLabel.Position = UDim2.fromOffset(2, 0)
+SliderLabel.Size = UDim2.new(0.6, 0, 0, 20)
+SliderLabel.BackgroundTransparency = 1
+SliderLabel.Text = "WalkSpeed Value"
+SliderLabel.TextColor3 = Color3.fromRGB(200, 205, 220)
+SliderLabel.Font = Enum.Font.GothamMedium
+SliderLabel.TextSize = 11
+SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+SliderLabel.Parent = SliderFrame
+
+local ValueLabel = Instance.new("TextLabel")
+ValueLabel.AnchorPoint = Vector2.new(1, 0)
+ValueLabel.Position = UDim2.new(1, -2, 0, 0)
+ValueLabel.Size = UDim2.fromOffset(60, 20)
+ValueLabel.BackgroundTransparency = 1
+ValueLabel.Text = "16"
+ValueLabel.TextColor3 = Color3.fromRGB(0, 210, 255)
+ValueLabel.Font = Enum.Font.GothamBold
+ValueLabel.TextSize = 11
+ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+ValueLabel.Parent = SliderFrame
+
+local SliderBar = Instance.new("Frame")
+SliderBar.Position = UDim2.fromOffset(2, 28)
+SliderBar.Size = UDim2.new(1, -4, 0, 6)
+SliderBar.BackgroundColor3 = Color3.fromRGB(30, 42, 60)
+SliderBar.BorderSizePixel = 0
+SliderBar.Active = true
+SliderBar.Parent = SliderFrame
+
+Instance.new("UICorner", SliderBar).CornerRadius = UDim.new(1, 0)
+
+local SliderFill = Instance.new("Frame")
+SliderFill.Size = UDim2.new(0, 0, 1, 0)
+SliderFill.BackgroundColor3 = Color3.fromRGB(0, 210, 255)
+SliderFill.BorderSizePixel = 0
+SliderFill.Parent = SliderBar
+
+Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(1, 0)
+
+local SliderKnob = Instance.new("Frame")
+SliderKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+SliderKnob.Position = UDim2.new(0, 0, 0.5, 0)
+SliderKnob.Size = UDim2.fromOffset(14, 14)
+SliderKnob.BackgroundColor3 = Color3.fromRGB(180, 240, 255)
+SliderKnob.BorderSizePixel = 0
+SliderKnob.Parent = SliderBar
+
+Instance.new("UICorner", SliderKnob).CornerRadius = UDim.new(1, 0)
+
+-- WalkSpeed Functionality
+local function updateSpeed()
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.WalkSpeed = WalkSpeedEnabled and TargetSpeed or DefaultSpeed
+    end
+end
+
+ToggleFrame.MouseButton1Click:Connect(function()
+    WalkSpeedEnabled = not WalkSpeedEnabled
+    CheckBox.BackgroundColor3 = WalkSpeedEnabled and Color3.fromRGB(0, 180, 255) or Color3.fromRGB(38, 48, 65)
+    CheckMark.Text = WalkSpeedEnabled and "✓" or ""
+    updateSpeed()
+end)
+
+local draggingSlider = false
+local function updateSlider(input)
+    local width = math.max(SliderBar.AbsoluteSize.X, 1)
+    local x = math.clamp(input.Position.X - SliderBar.AbsolutePosition.X, 0, width)
+    local alpha = x / width
+    TargetSpeed = math.floor(16 + (alpha * (250 - 16)))
+    SliderFill.Size = UDim2.new(alpha, 0, 1, 0)
+    SliderKnob.Position = UDim2.new(alpha, 0, 0.5, 0)
+    ValueLabel.Text = tostring(TargetSpeed)
+    if WalkSpeedEnabled then
+        updateSpeed()
+    end
+end
+
+SliderBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        draggingSlider = true
+        updateSlider(input)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if draggingSlider and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        updateSlider(input)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        draggingSlider = false
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if KeyVerified and WalkSpeedEnabled then
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum and hum.WalkSpeed ~= TargetSpeed then
+            hum.WalkSpeed = TargetSpeed
+        end
+    end
+end)
+
+-- Key Verification Action
 local function checkKey()
     if KeyInput.Text == CORRECT_KEY then
         KeyVerified = true
@@ -215,10 +396,15 @@ local function checkKey()
 end
 
 SubmitBtn.MouseButton1Click:Connect(checkKey)
+KeyInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then checkKey() end
+end)
+
 HideButton.MouseButton1Click:Connect(function()
     Main.Visible = false
     ReopenBtn.Visible = true
 end)
+
 ReopenBtn.MouseButton1Click:Connect(function()
     Main.Visible = true
     ReopenBtn.Visible = false
